@@ -1,16 +1,12 @@
 import React, { useState } from 'react';
 import { useProject } from '../context/ProjectContext';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, AlertTriangle, TrendingUp, Activity, Database, DownloadCloud } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, AreaChart, Area, CartesianGrid } from 'recharts';
-import { farsService } from '../services/farsService';
+import { ArrowLeft, ArrowRight, TrendingUp, Activity } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, AreaChart, Area, CartesianGrid } from 'recharts';
 
 export function Diagnosis() {
     const { currentProject } = useProject();
     const navigate = useNavigate();
-    const [isLoading, setIsLoading] = useState(false);
-    const [realData, setRealData] = useState(null);
-    const [apiError, setApiError] = useState(null);
 
     const siteId = currentProject.selectedSites[0];
     const site = currentProject.sitesData[siteId];
@@ -40,24 +36,10 @@ export function Diagnosis() {
         { year: 2021, crashes: 15 },
         { year: 2022, crashes: 10 },
         { year: 2023, crashes: 18 },
-        { year: 2024, crashes: realData ? realData.length : (site.crashes || 0) },
+        { year: 2024, crashes: site.crashes || 0 },
     ];
 
-    const displayCrashes = realData ? realData.length : site.crashes;
-
-    const handleFetchFars = async () => {
-        setIsLoading(true);
-        setApiError(null);
-        try {
-            const data = await farsService.getCrashes(1, 1, 2021);
-            const formatted = farsService.transformData(data);
-            setRealData(formatted);
-        } catch (err) {
-            setApiError("Failed to connect to NHTSA API. " + err.message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    const displayCrashes = site.crashes;
 
     return (
         <div className="space-y-6">
@@ -69,19 +51,15 @@ export function Diagnosis() {
                         </button>
                         <span className="text-secondary text-sm uppercase tracking-wider">Step 2: Diagnosis</span>
                     </div>
-                    <div className="flex items-center justify-between">
-                        <h2>{site.name}</h2>
-                        <button
-                            className="btn btn-secondary text-xs py-1 px-3 flex items-center gap-2"
-                            onClick={handleFetchFars}
-                            disabled={isLoading}
-                        >
-                            {isLoading ? <span className="animate-spin">⌛</span> : <DownloadCloud size={14} />}
-                            {realData ? 'Data Synced' : 'Fetch Real Data (NHTSA)'}
-                        </button>
-                    </div>
-                    {apiError && <div className="text-red-400 text-xs mt-1">{apiError}</div>}
-                    {realData && <div className="text-green-400 text-xs mt-1 flex items-center gap-1"><Database size={10} /> Connected to FARS Database (Live)</div>}
+                    <h2>{site.name}</h2>
+                </div>
+                <div>
+                    <button
+                        className="btn btn-primary"
+                        onClick={() => navigate('/countermeasures')}
+                    >
+                        Next: Countermeasures <ArrowRight size={16} className="ml-2" />
+                    </button>
                 </div>
             </div>
 
@@ -177,12 +155,6 @@ export function Diagnosis() {
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <div className="flex justify-end">
-                    <button className="btn btn-primary px-8" onClick={() => navigate('/countermeasures')}>
-                        Next: Countermeasures <ArrowRight size={16} className="ml-2" />
-                    </button>
                 </div>
             </div>
         </div>
