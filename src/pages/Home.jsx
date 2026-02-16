@@ -9,12 +9,17 @@ export function Home() {
         <div className="max-w-6xl mx-auto py-12 space-y-12">
             {/* Hero Section */}
             <div className="text-center space-y-6">
+                <img
+                    src="https://highstreetconsulting.com/wp-content/uploads/high-street-logo-400x83.png"
+                    alt="High Street Consulting"
+                    className="h-16 mx-auto mb-8"
+                />
                 <h1 className="text-5xl font-bold text-primary tracking-tight">
-                    CDOT Safety Analysis Tool
+                    Mock Chicago Department of Transportation Safety Analysis Tool
                 </h1>
-                <p className="text-xl text-secondary max-w-2xl mx-auto font-light">
-                    A data-driven workflow for the Highway Safety Manual 6-step process.
-                    Screen Chicago's roadway network, diagnosis collision patterns, and implement cost-effective countermeasures.
+                <p className="text-xl text-secondary max-w-3xl mx-auto font-light">
+                    A data-driven workflow to screen the roadway network, diagnosis collision patterns, and implement cost-effective countermeasures.
+                    This tool is not to be used for analysis and only created for the CDOT STP Group 3 proposal.
                 </p>
                 <button
                     className="btn btn-primary text-lg px-8 py-4 rounded-full mt-4"
@@ -34,7 +39,7 @@ export function Home() {
                         <h3 className="text-xl m-0 text-primary">Network Screening</h3>
                     </div>
                     <p className="text-secondary text-sm">
-                        Identify high-risk locations using advanced safety performance functions (SPFs) and empirical bayes methods.
+                        Identify high-risk locations based on Crash Frequency, Crash Rate, Excess Crashes, or Critical Rate.
                     </p>
                 </div>
 
@@ -75,18 +80,6 @@ export function Home() {
                 </div>
             </div>
 
-            {/* Workflow Steps Preview */}
-            <div className="border-t border-slate-200 pt-12">
-                <h2 className="text-center mb-8 text-2xl">The 6-Step Workflow</h2>
-                <div className="flex flex-wrap justify-center gap-4">
-                    {['Network Screening', 'Diagnosis', 'Countermeasure Selection', 'Economic Appraisal', 'Prioritization', 'Safety Effectiveness'].map((step, idx) => (
-                        <div key={idx} className="flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 text-sm shadow-sm text-secondary">
-                            <span className="w-6 h-6 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-bold text-primary">{idx + 1}</span>
-                            {step}
-                        </div>
-                    ))}
-                </div>
-            </div>
         </div>
     );
 }
