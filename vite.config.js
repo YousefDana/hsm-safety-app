@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: './', // Ensure relative paths for GH Pages deployment
+  base: '/hsm-safety-app/', // Ensure relative paths for GH Pages deployment
   server: {
     proxy: {
       '/api/nhtsa': {

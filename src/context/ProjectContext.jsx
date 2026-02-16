@@ -22,8 +22,27 @@ export function ProjectProvider({ children }) {
         });
     };
 
+    const addCountermeasure = (siteId, cm) => {
+        const existing = currentProject.sitesData[siteId]?.countermeasures || [];
+        updateProject({
+            sitesData: {
+                ...currentProject.sitesData,
+                [siteId]: { ...currentProject.sitesData[siteId], countermeasures: [...existing, cm] }
+            }
+        });
+    };
+
+    const updateAppraisal = (siteId, bcaData) => {
+        updateProject({
+            sitesData: {
+                ...currentProject.sitesData,
+                [siteId]: { ...currentProject.sitesData[siteId], appraisal: bcaData }
+            }
+        });
+    };
+
     return (
-        <ProjectContext.Provider value={{ currentProject, updateProject, selectSite }}>
+        <ProjectContext.Provider value={{ currentProject, updateProject, selectSite, addCountermeasure, updateAppraisal }}>
             {children}
         </ProjectContext.Provider>
     );

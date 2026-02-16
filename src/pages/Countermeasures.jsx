@@ -2,28 +2,49 @@ import React, { useState } from 'react';
 import { useProject } from '../context/ProjectContext';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Search, PlusCircle, CheckCircle, ExternalLink, Info, PieChart as PieIcon } from 'lucide-react';
-import { MOCK_CMFS } from '../data/mockData';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
+const MOCK_CMFS = [
+    { id: 'cmf_001', name: 'Install Traffic Signal', cmf: 0.72, cost: 250000, life: 20, crashType: 'Angle' },
+    { id: 'cmf_002', name: 'Improve Signal Timing', cmf: 0.85, cost: 15000, life: 5, crashType: 'Rear End' },
+    { id: 'cmf_003', name: 'Install Protected Left Turn Phase', cmf: 0.81, cost: 35000, life: 10, crashType: 'Angle' },
+    { id: 'cmf_004', name: 'Install Street Lighting', cmf: 0.60, cost: 45000, life: 15, crashType: 'Nighttime' },
+    { id: 'cmf_005', name: 'Install Centerline Rumble Strips', cmf: 0.85, cost: 12000, life: 7, crashType: 'Head On' },
+    { id: 'cmf_006', name: 'Install Pedestrian Refuge Island', cmf: 0.68, cost: 35000, life: 20, crashType: 'Pedestrian' },
+    { id: 'cmf_007', name: 'High Visibility Crosswalks', cmf: 0.70, cost: 8000, life: 5, crashType: 'Pedestrian' },
+    { id: 'cmf_008', name: 'Advance Warning Signs', cmf: 0.95, cost: 2000, life: 7, crashType: 'All' },
+    { id: 'cmf_009', name: 'Pavement Friction Treatment', cmf: 0.50, cost: 85000, life: 10, crashType: 'Wet Road' },
+    { id: 'cmf_010', name: 'Road Diet (4 to 3 lanes)', cmf: 0.71, cost: 150000, life: 20, crashType: 'All' },
+];
+
 export function Countermeasures() {
-    const { currentProject, updateProject } = useProject();
+    const { currentProject, addCountermeasure, updateProject } = useProject();
     const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
 
     const siteId = currentProject.selectedSites[0];
     const site = currentProject.sitesData[siteId];
 
-    const selectedCMFs = currentProject.selectedCMFs?.[siteId] || [];
+    // Use sitesData storage
+    const selectedCMFs = site?.countermeasures || [];
 
     const handleToggleCMF = (cmf) => {
-        const currentForSite = currentProject.selectedCMFs?.[siteId] || [];
-        let newSelection;
-        if (currentForSite.includes(cmf.id)) {
-            newSelection = currentForSite.filter(id => id !== cmf.id);
+        const exists = selectedCMFs.find(c => c.id === cmf.id);
+        let newCountermeasures;
+
+        if (exists) {
+            newCountermeasures = selectedCMFs.filter(c => c.id !== cmf.id);
         } else {
-            newSelection = [...currentForSite, cmf.id];
+            newCountermeasures = [...selectedCMFs, cmf];
         }
-        updateProject({ selectedCMFs: { ...currentProject.selectedCMFs, [siteId]: newSelection } });
+
+        // Update context using direct updateProject for array replacement since addCountermeasure is additive
+        updateProject({
+            sitesData: {
+                ...currentProject.sitesData,
+                [siteId]: { ...site, countermeasures: newCountermeasures }
+            }
+        });
     };
 
     const filteredCMFs = MOCK_CMFS.filter(cmf =>
@@ -31,13 +52,13 @@ export function Countermeasures() {
         cmf.crashType.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const totalCost = selectedCMFs.reduce((acc, id) => acc + MOCK_CMFS.find(c => c.id === id).cost, 0);
+    const totalCost = selectedCMFs.reduce((acc, cm) => acc + cm.cost, 0);
+
+    // Get Top Crash Type for "Recommended" Label
+    const topCrashType = site?.types ? Object.entries(site.types).sort((a, b) => b[1] - a[1])[0]?.[0] : null;
 
     // Data for sidebar chart
-    const costData = selectedCMFs.map(id => {
-        const c = MOCK_CMFS.find(c => c.id === id);
-        return { name: c.name, value: c.cost };
-    });
+    const costData = selectedCMFs.map(cm => ({ name: cm.name, value: cm.cost }));
     const COLORS = ['#f59e0b', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6'];
 
     if (!site) return <div>No site selected.</div>;
@@ -55,68 +76,99 @@ export function Countermeasures() {
                     <h2>Countermeasure Selection</h2>
                 </div>
 
-                <button
-                    className="btn btn-primary"
-                    onClick={() => navigate('/economic-appraisal')}
-                    disabled={selectedCMFs.length === 0}
-                >
-                    Appraisal <ArrowRight size={18} />
-                </button>
+                <div className="flex items-center gap-4">
+                    <div className="text-right hidden md:block">
+                        <div className="text-sm text-secondary">Targeting Issue</div>
+                        <div className="font-bold text-amber-500">{topCrashType || 'General Safety'}</div>
+                    </div>
+                    <button
+                        className="btn btn-primary"
+                        onClick={() => navigate('/economic-appraisal')}
+                        disabled={selectedCMFs.length === 0}
+                    >
+                        Appraisal <ArrowRight size={18} />
+                    </button>
+                </div>
             </div>
 
             <div className="flex gap-6 relative items-start">
                 {/* Main List */}
                 <div className="flex-1 space-y-6">
-                    <div className="bg-slate-800/50 p-4 rounded-lg flex gap-4 sticky top-20 z-10 backdrop-blur-md border border-white/5 shadow-lg">
+                    <div className="panel p-4 sticky top-4 z-10 !mb-0 flex gap-4 items-center">
                         <div className="relative flex-1">
-                            <Search className="absolute left-3 top-3 text-secondary" size={20} />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary" size={20} />
                             <input
                                 type="text"
-                                className="form-input pl-10"
-                                placeholder="Type to search (e.g. 'signal', 'lighting')..."
+                                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded text-sm focus:outline-none focus:border-sky-500 transition-colors"
+                                placeholder="Search countermeasures (e.g. 'signal', 'lighting')..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
+                        <div className="text-sm text-secondary">
+                            Showing {filteredCMFs.length} results
+                        </div>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {filteredCMFs.map(cmf => {
-                            const isSelected = selectedCMFs.includes(cmf.id);
+                            const isSelected = selectedCMFs.some(c => c.id === cmf.id);
+                            // Relax matching for recommendations
+                            const isRecommended = topCrashType && (
+                                cmf.crashType.toLowerCase().includes(topCrashType.toLowerCase()) ||
+                                cmf.crashType === 'All'
+                            );
+
                             return (
                                 <div
                                     key={cmf.id}
-                                    className={`premium-card flex flex-col md:flex-row gap-4 items-center justify-between group transition-all duration-300 cursor-pointer ${isSelected ? 'border-amber-500/50 bg-slate-800 translate-x-1 outline outline-1 outline-amber-500/30' : 'hover:bg-slate-800/50'}`}
+                                    className={`panel p-0 flex flex-col overflow-hidden group transition-all duration-300 cursor-pointer h-full relative ${isSelected ? 'ring-2 ring-primary ring-offset-2' : 'hover:shadow-md'}`}
                                     onClick={() => handleToggleCMF(cmf)}
                                 >
-                                    <div className="flex-1">
-                                        <h4 className="flex items-center gap-2 text-lg">
-                                            {cmf.name}
-                                        </h4>
-                                        <div className="flex gap-2 mb-3 mt-1">
-                                            <span className="text-xs font-mono bg-slate-700/50 border border-slate-600 px-2 py-0.5 rounded text-secondary uppercase tracking-wide">{cmf.crashType}</span>
-                                            <span className="text-xs font-mono bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded text-amber-500">CMF: {cmf.cmf}</span>
+                                    {isRecommended && (
+                                        <div className="absolute top-0 right-0 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-bl uppercase tracking-wide z-10">
+                                            Recommended
                                         </div>
-                                        <div className="flex gap-6 text-sm text-secondary">
-                                            <div className="flex items-center gap-1">Price: <span className="text-white font-medium">${cmf.cost.toLocaleString()}</span></div>
-                                            <div className="flex items-center gap-1">Life: <span className="text-white font-medium">{cmf.life} yrs</span></div>
+                                    )}
+
+                                    <div className="p-4 flex flex-col h-full">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <h4 className="text-sm font-bold text-primary leading-tight line-clamp-2 min-h-[2.5em]">{cmf.name}</h4>
                                         </div>
-                                        <a
-                                            href={`http://www.cmfclearinghouse.org/search.cfm?q=${encodeURIComponent(cmf.name)}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-center gap-1 text-xs text-amber-500 mt-2 hover:underline opacity-50 hover:opacity-100 transition-opacity w-fit"
-                                            onClick={(e) => e.stopPropagation()}
-                                        >
-                                            <ExternalLink size={10} /> Clearinghouse Details
-                                        </a>
-                                    </div>
-                                    <div className="border-l border-white/5 pl-6 h-full flex items-center justify-center">
-                                        <button
-                                            className={`btn ${isSelected ? 'btn-primary shadow-[0_0_15px_rgba(245,158,11,0.3)]' : 'btn-secondary'} rounded-full w-12 h-12 p-0 shrink-0 flex items-center justify-center transition-all`}
-                                        >
-                                            {isSelected ? <CheckCircle size={24} /> : <PlusCircle size={24} />}
-                                        </button>
+
+                                        <div className="mb-4">
+                                            <span className="text-[10px] font-mono bg-slate-100 border border-slate-200 px-2 py-0.5 rounded text-secondary uppercase inline-block">{cmf.crashType}</span>
+                                        </div>
+
+                                        <div className="space-y-2 text-xs text-secondary mt-auto">
+                                            <div className="flex justify-between border-b border-slate-100 pb-1">
+                                                <span>CMF</span>
+                                                <span className="font-bold text-primary bg-slate-100 px-1 rounded">{cmf.cmf}</span>
+                                            </div>
+                                            <div className="flex justify-between border-b border-slate-100 pb-1">
+                                                <span>Cost</span>
+                                                <span className="font-bold text-primary">${cmf.cost.toLocaleString()}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span>Life</span>
+                                                <span className="font-bold text-primary">{cmf.life} yr</span>
+                                            </div>
+                                        </div>
+
+                                        <div className={`mt-4 pt-3 border-t border-slate-100 flex items-center justify-between`}>
+                                            <a
+                                                href={`http://www.cmfclearinghouse.org/search.cfm?q=${encodeURIComponent(cmf.name)}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-[10px] text-slate-400 hover:text-sky-600 flex items-center gap-1"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <ExternalLink size={10} /> Info
+                                            </a>
+                                            <div className={`transition-colors text-xs font-bold flex items-center gap-1 ${isSelected ? 'text-primary' : 'text-slate-300'}`}>
+                                                {isSelected ? <><CheckCircle size={14} /> Selected</> : <><PlusCircle size={14} /> Add</>}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             );
@@ -126,14 +178,16 @@ export function Countermeasures() {
 
                 {/* Sticky Sidebar */}
                 <div className="w-80 shrink-0 sticky top-4 h-[calc(100vh-2rem)] flex flex-col">
-                    <div className="premium-card bg-slate-800/90 border-amber-500/20 flex flex-col h-full shadow-2xl">
-                        <h3 className="mb-4 text-lg border-b border-white/10 pb-4 flex items-center gap-2">
-                            <PieIcon size={18} className="text-amber-500" /> Portfolio
-                        </h3>
+                    <div className="panel p-0 flex flex-col h-full shadow-lg border-t-4 border-t-primary">
+                        <div className="panel-header">
+                            <h3 className="flex items-center gap-2 m-0 text-sm">
+                                <PieIcon size={16} className="text-primary" /> Selected Portfolio
+                            </h3>
+                        </div>
 
                         {/* Mini Cost Chart */}
                         {selectedCMFs.length > 0 && (
-                            <div className="h-40 shrink-0 mb-4">
+                            <div className="h-40 shrink-0 my-4 px-4">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <PieChart>
                                         <Pie data={costData} innerRadius={35} outerRadius={55} paddingAngle={2} dataKey="value">
@@ -141,47 +195,44 @@ export function Countermeasures() {
                                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                             ))}
                                         </Pie>
-                                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: 'none', fontSize: '12px' }} formatter={(val) => `$${val.toLocaleString()}`} />
+                                        <Tooltip contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', fontSize: '12px' }} formatter={(val) => `$${val.toLocaleString()}`} />
                                     </PieChart>
                                 </ResponsiveContainer>
                                 <div className="text-center text-xs text-secondary mt-[-10px]">Cost Distribution</div>
                             </div>
                         )}
 
-                        <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin">
+                        <div className="flex-1 overflow-y-auto space-y-3 p-4 border-t border-slate-100">
                             {selectedCMFs.length === 0 ? (
                                 <div className="text-center text-secondary py-12 flex flex-col items-center">
-                                    <Info className="mb-3 opacity-20" size={48} />
-                                    <p>Select countermeasures from the list to build your portfolio.</p>
+                                    <Info className="mb-3 text-slate-300" size={32} />
+                                    <p className="text-sm">Select countermeasures from the list to build your portfolio.</p>
                                 </div>
                             ) : (
-                                selectedCMFs.map((id, idx) => {
-                                    const cmf = MOCK_CMFS.find(c => c.id === id);
-                                    return (
-                                        <div key={id} className="bg-slate-900/50 p-3 rounded text-sm relative border-l-2 pl-3" style={{ borderLeftColor: COLORS[idx % COLORS.length] }}>
-                                            <div className="font-medium mb-1 truncate">{cmf.name}</div>
-                                            <div className="flex justify-between text-xs text-secondary">
-                                                <span>CMF: {cmf.cmf}</span>
-                                                <span>${cmf.cost.toLocaleString()}</span>
-                                            </div>
-                                            <button
-                                                className="absolute top-1 right-1 text-slate-600 hover:text-red-400 p-1"
-                                                onClick={() => handleToggleCMF(cmf)}
-                                            >
-                                                &times;
-                                            </button>
+                                selectedCMFs.map((cm, idx) => (
+                                    <div key={cm.id} className="bg-slate-50 p-3 rounded text-sm relative border-l-4 shadow-sm" style={{ borderLeftColor: COLORS[idx % COLORS.length] }}>
+                                        <div className="font-bold text-primary mb-1 truncate">{cm.name}</div>
+                                        <div className="flex justify-between text-xs text-secondary">
+                                            <span>CMF: {cm.cmf}</span>
+                                            <span>${cm.cost.toLocaleString()}</span>
                                         </div>
-                                    );
-                                })
+                                        <button
+                                            className="absolute top-1 right-1 text-slate-400 hover:text-red-500 p-1"
+                                            onClick={() => handleToggleCMF(cm)}
+                                        >
+                                            &times;
+                                        </button>
+                                    </div>
+                                ))
                             )}
                         </div>
 
-                        <div className="bg-slate-900 rounded p-4 mt-4 shrink-0 border border-slate-700">
-                            <div className="text-secondary text-xs mb-1 uppercase tracking-wider">Total Investment</div>
-                            <div className="text-2xl font-bold text-white">
+                        <div className="bg-slate-50 p-4 border-t border-slate-200">
+                            <div className="text-secondary text-xs mb-1 uppercase tracking-wider font-semibold">Total Investment</div>
+                            <div className="text-2xl font-bold text-primary">
                                 ${totalCost.toLocaleString()}
                             </div>
-                            <div className="text-xs text-amber-500 mt-1">
+                            <div className="text-xs text-secondary mt-1">
                                 {selectedCMFs.length} item{selectedCMFs.length !== 1 && 's'} selected
                             </div>
                         </div>
